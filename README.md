@@ -2,6 +2,8 @@
 
 Fixes the broken GPU utilization readout (permanently stuck at 655%) on AMD APUs where the `amdgpu` driver doesn't populate the `gpu_metrics` utilization field. Confirmed on the ASRock BC-250 (PS5 Oberon APU) running Bazzite, should work on other affected AMD APUs too.
 
+![MangoHud showing correct GPU utilization after fix](img/proof_image.png)
+
 ## What's the problem?
 
 The kernel exposes GPU telemetry at `/sys/class/drm/cardX/device/gpu_metrics` as a binary struct. MangoHud and similar tools read this directly. On certain APUs, the utilization field at offset `0x1C` is permanently `0xFFFF` (65535) AMD's "not available" sentinel. MangoHud doesn't check for that and just displays it as 655%.
