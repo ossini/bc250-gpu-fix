@@ -27,8 +27,8 @@
 #define PATCHED_DIR     "/var/lib/gpu-metrics-fix"
 #define PATCHED_FILE    "patched_metrics"
 #define METRICS_SIZE    128
-#define USAGE_OFFSET    0x1C     /* uint16_t LE — GPU utilization */
-#define INTERVAL_US     1000000  /* 1s */
+#define USAGE_OFFSET    0x1C
+#define INTERVAL_US     1000000
 #define MAX_CLIENTS     4096
 
 static volatile sig_atomic_t running = 1;
@@ -37,10 +37,7 @@ static char patched_path[256];
 
 static void on_signal(int sig) { (void)sig; running = 0; }
 
-/*
- * Walk /proc/*/fdinfo/* and sum up drm-engine-gfx nanoseconds
- * per unique drm-client-id. Returns total gfx engine time.
- */
+/* Walk proc fdinfo and sum up drm-engine-gfx ns per client id */
 static uint64_t get_gfx_time(void)
 {
     static uint64_t keys[MAX_CLIENTS];
@@ -98,7 +95,6 @@ static uint64_t get_gfx_time(void)
 
             if (!has_cid || !gfx) continue;
 
-            /* simple open-addressing hash */
             uint32_t idx = (uint32_t)(cid * 2654435761u) % MAX_CLIENTS;
             for (int i = 0; i < MAX_CLIENTS; i++) {
                 uint32_t s = (idx + (uint32_t)i) % MAX_CLIENTS;
@@ -162,7 +158,6 @@ int main(int argc, char *argv[])
     snprintf(patched_path, sizeof(patched_path),
              "%s/%s", PATCHED_DIR, PATCHED_FILE);
 
-    /* dry run — just print computed usage */
     if (dry_run) {
         fprintf(stderr, "dry-run, reading %s\n", sysfs_path);
         uint64_t prev = get_gfx_time();
@@ -177,14 +172,12 @@ int main(int argc, char *argv[])
         return 0;
     }
 
-    /* open real metrics before we mount over it */
     int real_fd = open(sysfs_path, O_RDONLY);
     if (real_fd < 0) {
         fprintf(stderr, "can't open %s: %s\n", sysfs_path, strerror(errno));
         return 1;
     }
 
-    /* create patched file */
     mkdir(PATCHED_DIR, 0755);
     int patch_fd = open(patched_path, O_RDWR | O_CREAT | O_TRUNC, 0644);
     if (patch_fd < 0) {
@@ -195,7 +188,6 @@ int main(int argc, char *argv[])
     uint8_t zeros[METRICS_SIZE] = {0};
     write(patch_fd, zeros, METRICS_SIZE);
 
-    /* bind mount */
     if (mount(patched_path, sysfs_path, NULL, MS_BIND, NULL)) {
         fprintf(stderr, "bind mount failed: %s\n", strerror(errno));
         close(patch_fd);
@@ -208,7 +200,6 @@ int main(int argc, char *argv[])
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGINT, &sa, NULL);
 
-    /* main loop */
     uint64_t prev = get_gfx_time();
     while (running) {
         usleep(INTERVAL_US);
@@ -223,7 +214,6 @@ int main(int argc, char *argv[])
         ssize_t n = read(real_fd, raw, METRICS_SIZE);
         if (n < 30) continue;
 
-        /* overwrite the broken utilization field */
         raw[USAGE_OFFSET]     = (uint8_t)(pct & 0xFF);
         raw[USAGE_OFFSET + 1] = (uint8_t)((pct >> 8) & 0xFF);
 
@@ -231,7 +221,6 @@ int main(int argc, char *argv[])
         write(patch_fd, raw, (size_t)n);
     }
 
-    /* cleanup */
     fprintf(stderr, "gpu-metrics-fix: shutting down\n");
     umount2(sysfs_path, MNT_DETACH);
     close(patch_fd);
