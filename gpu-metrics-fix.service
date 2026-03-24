@@ -1,0 +1,13 @@
+[Unit]
+Description=Fix broken GPU utilization in amdgpu gpu_metrics
+After=multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/gpu-metrics-fix
+ExecStopPost=-/usr/bin/umount /sys/class/drm/card1/device/gpu_metrics
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
