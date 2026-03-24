@@ -1,0 +1,29 @@
+name: Hardware Report
+description: Report if the fix works on your hardware
+labels: [hardware]
+body:
+  - type: dropdown
+    id: status
+    attributes:
+      label: Does it work?
+      options:
+        - "Works"
+        - "Partially"
+        - "Doesn't work"
+    validations:
+      required: true
+
+  - type: textarea
+    id: hardware
+    attributes:
+      label: Hardware info
+      description: "Output of: lspci | grep VGA"
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: dump
+    attributes:
+      label: gpu_metrics dump (before fix)
+      render: shell

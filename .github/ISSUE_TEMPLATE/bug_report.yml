@@ -1,0 +1,32 @@
+name: Bug Report
+description: Something doesn't work
+labels: [bug]
+body:
+  - type: input
+    id: hardware
+    attributes:
+      label: Hardware
+      placeholder: "ASRock BC-250, card1"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: gpu-metrics-dump
+    attributes:
+      label: gpu_metrics dump
+      description: "Run: xxd /sys/class/drm/card*/device/gpu_metrics"
+      render: shell
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Service logs
+      description: "Run: journalctl -u gpu-metrics-fix -n 30"
+      render: shell
